@@ -1,0 +1,67 @@
+'use client';
+import { motion, useInView } from 'framer-motion';
+import { useRef } from 'react';
+import { ZoomParallax } from '@/components/ui/zoom-parallax';
+import { FloatingLogo } from '@/components/ui/FloatingLogo';
+
+const images = [
+  { src: '/images/intampinare/2.jpg', alt: 'Întâmpinare' },
+  { src: '/images/flashmob/IMG_6022.JPG', alt: 'Flashmob' },
+  { src: '/images/oh/IMG_2131.JPG', alt: 'Oh!' },
+  { src: '/images/legat/IMG_6610.jpg', alt: 'Legat' },
+  { src: '/images/oh/IMG_6024.JPG', alt: 'Oh! – scenă' },
+  { src: '/images/wob/IMG_6537.JPG', alt: 'WOB' },
+  { src: '/images/wob/IMG_6541.JPG', alt: 'WOB – formație' },
+];
+
+export default function Gallery() {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true });
+
+  return (
+    <section id="gallery" className="relative bg-brand-bg overflow-hidden">
+      {/* 3D Flying logo elements */}
+      <FloatingLogo
+        src="/logo/Detalii basarabs5.png"
+        size={110}
+        position="top-20 left-6"
+        delay={0.3}
+        opacity={0.16}
+        from="left"
+        floatRange={14}
+      />
+      <FloatingLogo
+        src="/logo/Detalii basarabs7.png"
+        size={95}
+        position="top-24 right-8"
+        delay={0.6}
+        opacity={0.15}
+        from="top"
+        floatRange={11}
+      />
+
+      <div ref={ref} className="max-w-7xl mx-auto px-6 pt-24 pb-8">
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6 }}
+          className="text-teal-brand text-xs tracking-[0.4em] uppercase mb-3"
+        >
+          Gallery
+        </motion.p>
+        <motion.h2
+          initial={{ opacity: 0, y: 15 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.7, delay: 0.1 }}
+          className="font-display text-white leading-tight"
+          style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 300 }}
+        >
+          Unforgettable{' '}
+          <span className="italic text-gold">moments</span>
+        </motion.h2>
+      </div>
+
+      <ZoomParallax images={images} />
+    </section>
+  );
+}
