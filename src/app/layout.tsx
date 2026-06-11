@@ -23,7 +23,7 @@ const marcellus = Marcellus({
 
 export const metadata: Metadata = {
   title: "Basarab's Dance",
-  description: "O companie de dans care transformă emoția în spectacol.",
+  description: "Un colectiv de dansatori care transformă emoția în spectacol.",
 };
 
 export default function RootLayout({
