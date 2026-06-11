@@ -1,6 +1,6 @@
 'use client';
 
-import { useScroll, useTransform, motion } from 'framer-motion';
+import { useScroll, useTransform, useReducedMotion, motion } from 'framer-motion';
 import { useRef } from 'react';
 
 interface Image {
@@ -15,12 +15,13 @@ interface ZoomParallaxProps {
 
 export function ZoomParallax({ images }: ZoomParallaxProps) {
     const container = useRef(null);
+    const reducedMotion = useReducedMotion();
     const { scrollYProgress } = useScroll({
         target: container,
         offset: ['start start', 'end end'],
     });
 
-    const scale4 = useTransform(scrollYProgress, [0, 1], [1, 4]);
+    const scale4 = useTransform(scrollYProgress, [0, 1], [1, 4.4]);
     const scale5 = useTransform(scrollYProgress, [0, 1], [1, 5]);
     const scale6 = useTransform(scrollYProgress, [0, 1], [1, 6]);
     const scale8 = useTransform(scrollYProgress, [0, 1], [1, 8]);
@@ -28,13 +29,31 @@ export function ZoomParallax({ images }: ZoomParallaxProps) {
 
     const scales = [scale4, scale5, scale6, scale5, scale6, scale8, scale9];
 
+    const captionOpacity = useTransform(scrollYProgress, [0.85, 1], [0, 1]);
+    const captionY = useTransform(scrollYProgress, [0.85, 1], [16, 0]);
+
+    if (reducedMotion) {
+        return (
+            <div className="grid grid-cols-2 gap-3 px-6 pb-24 md:grid-cols-3">
+                {images.map(({ src, alt }, index) => (
+                    <img
+                        key={index}
+                        src={src}
+                        alt={alt || `Gallery image ${index + 1}`}
+                        className="aspect-[4/3] w-full object-cover"
+                        loading="lazy"
+                    />
+                ))}
+            </div>
+        );
+    }
+
     return (
         <div ref={container} className="relative h-[300vh]">
-            <div className="sticky top-0 h-screen overflow-hidden">
+            <div className="sticky top-0 h-screen overflow-hidden bg-brand-bg">
                 {images.map(({ src, alt }, index) => {
                     const scale = scales[index % scales.length];
-                    console.log(src);
-                    
+
                     return (
                         <motion.div
                             key={index}
@@ -51,6 +70,17 @@ export function ZoomParallax({ images }: ZoomParallaxProps) {
                         </motion.div>
                     );
                 })}
+
+                {/* Closing caption — resolves the zoom instead of just ending */}
+                <motion.div
+                    style={{ opacity: captionOpacity, y: captionY }}
+                    className="pointer-events-none absolute inset-x-0 bottom-14 z-10 flex flex-col items-center gap-3"
+                >
+                    <span className="inline-block h-1.5 w-1.5 rotate-45 bg-gold/80" />
+                    <p className="font-display text-lg font-light italic tracking-wide text-white/85 md:text-2xl">
+                        Basarab&apos;s Dance — unforgettable moments
+                    </p>
+                </motion.div>
             </div>
         </div>
     );

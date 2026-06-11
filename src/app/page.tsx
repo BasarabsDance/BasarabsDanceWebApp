@@ -7,6 +7,7 @@ import About from '@/components/sections/About';
 import Shows from '@/components/sections/Shows';
 import Gallery from '@/components/sections/Gallery';
 import Footer from '@/components/sections/Footer';
+import { FolkThread } from '@/components/ui/FolkThread';
 
 export default function Page() {
   useEffect(() => {
@@ -22,13 +23,18 @@ export default function Page() {
   }, []);
 
   return (
-    <main className="min-h-screen w-full bg-[#060606] overflow-x-hidden">
+    /* overflow-x-clip (not hidden): hidden would create a scroll container and break position:sticky */
+    <main className="min-h-screen w-full bg-[#060606] overflow-x-clip">
       <Navbar />
       <Hero />
-      <About />
-      <Shows />
-      <Gallery />
-      <Footer />
+      {/* relative wrapper = coordinate space for the FolkThread overlay */}
+      <div className="relative">
+        <FolkThread />
+        <About />
+        <Shows />
+        <Gallery />
+        <Footer />
+      </div>
     </main>
   );
 }

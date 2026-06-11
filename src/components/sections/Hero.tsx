@@ -1,26 +1,31 @@
 'use client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useRef, useState, useCallback } from 'react';
+import dynamic from 'next/dynamic';
+import { useTransparentImage } from '@/lib/useTransparentImage';
+
+/* lazy, client-only — never blocks first paint */
+const DanceParticles = dynamic(() => import('@/components/three/DanceParticles'), { ssr: false });
 
 /* ── events ──────────────────────────────────────────────────── */
 const EVENTS = [
   {
     title: 'Paris',
-    sub: 'Top Event · 2025',
+    sub: 'Event · 2025',
     video: '/top-events/event1.mp4',
     logoSrc: '/logo/Detalii basarabs6.png',
     accent: '#d42b3a',
   },
   {
     title: 'Madisson Park',
-    sub: 'Spectacol · Season 2025',
+    sub: 'Event · 2026',
     video: '/top-events/event2.mov',
     logoSrc: '/logo/Detalii basarabs4.png',
     accent: '#c9a227',
   },
   {
     title: 'Balti',
-    sub: 'Spectacol · Season 2025',
+    sub: 'Event · 2026',
     video: '/top-events/event3.mov',
     logoSrc: '/logo/Detalii basarabs2.png',
     accent: '#c06080',
@@ -29,41 +34,17 @@ const EVENTS = [
 
 const AUTO_MS = 20000;
 
-/* ── white-bg canvas removal ─────────────────────────────────── */
-function useTransparentImage(src: string) {
-  const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
-    if (!src) return;
-    setUrl(null);
-    const img = new Image();
-    img.onload = () => {
-      const c = document.createElement('canvas');
-      c.width = img.naturalWidth;
-      c.height = img.naturalHeight;
-      const ctx = c.getContext('2d')!;
-      ctx.drawImage(img, 0, 0);
-      const id = ctx.getImageData(0, 0, c.width, c.height);
-      const d = id.data;
-      for (let i = 0; i < d.length; i += 4) {
-        if (d[i] > 228 && d[i + 1] > 228 && d[i + 2] > 228) d[i + 3] = 0;
-      }
-      ctx.putImageData(id, 0, 0);
-      setUrl(c.toDataURL('image/png'));
-    };
-    img.src = src;
-  }, [src]);
-  return url;
-}
-
 /* ── FlyingLogo — arcs across the screen on event change ─────── */
 interface FlyingLogoProps {
   src: string;
   trigger: number; // increment to re-fire
   fromSide: 'left' | 'right';
   accent: string;
+  /** smaller echo ornament on the opposite diagonal */
+  secondary?: boolean;
 }
 
-function FlyingLogo({ src, trigger, fromSide, accent }: FlyingLogoProps) {
+function FlyingLogo({ src, trigger, fromSide, accent, secondary = false }: FlyingLogoProps) {
   const url = useTransparentImage(src);
   const [key, setKey] = useState(0);
 
@@ -77,39 +58,50 @@ function FlyingLogo({ src, trigger, fromSide, accent }: FlyingLogoProps) {
   const startX = fromSide === 'left' ? '-30vw' : '130vw';
   const endX = fromSide === 'left' ? '130vw' : '-30vw';
   const midX = '50vw';
+  const yArc = secondary ? ['0%', '12vh', '-9vh'] : ['0%', '-12vh', '10vh'];
+  const peakOpacity = secondary ? 0.5 : 0.9;
+  const baseDelay = secondary ? 0.2 : 0;
+  /* [extra delay, opacity factor] — ghost copies form a comet trail */
+  const copies: Array<[number, number]> = secondary ? [[0, 1]] : [[0, 1], [0.12, 0.4], [0.24, 0.18]];
 
   return (
-    <motion.div
-      key={key}
-      className="absolute pointer-events-none select-none z-30"
-      style={{
-        top: '20%',
-        left: 0,
-        width: 110,
-        height: 110,
-        transformPerspective: 900,
-      }}
-      initial={{ x: startX, y: 0, rotateY: fromSide === 'left' ? -80 : 80, rotateZ: fromSide === 'left' ? -25 : 25, scale: 0.3, opacity: 0 }}
-      animate={{
-        x: [startX, midX, endX],
-        y: ['0%', '-18vh', '8vh'],
-        rotateY: [fromSide === 'left' ? -80 : 80, 0, fromSide === 'left' ? 80 : -80],
-        rotateZ: [fromSide === 'left' ? -25 : 25, 0, fromSide === 'left' ? 20 : -20],
-        rotateX: [-30, 15, -10],
-        scale: [0.3, 1.15, 0.4],
-        opacity: [0, 0.85, 0],
-      }}
-      transition={{ duration: 1.8, ease: [0.22, 1, 0.36, 1], times: [0, 0.45, 1] }}
-    >
-      <img
-        src={url}
-        alt=""
-        className="w-full h-full object-contain"
-        style={{
-          filter: `drop-shadow(0 0 22px ${accent}88) drop-shadow(0 12px 32px rgba(0,0,0,0.7))`,
-        }}
-      />
-    </motion.div>
+    <>
+      {copies.map(([extraDelay, opacityFactor], i) => (
+        <motion.div
+          key={`${key}-${i}`}
+          className="absolute pointer-events-none select-none z-30"
+          style={{
+            top: secondary ? '58%' : '42%',
+            left: 0,
+            width: secondary ? 'clamp(90px, 10vw, 150px)' : 'clamp(160px, 22vw, 300px)',
+            aspectRatio: '1 / 1',
+            transformPerspective: 900,
+          }}
+          initial={{ x: startX, y: 0, rotateY: fromSide === 'left' ? -80 : 80, rotateZ: fromSide === 'left' ? -25 : 25, scale: 0.3, opacity: 0 }}
+          animate={{
+            x: [startX, midX, endX],
+            y: yArc,
+            rotateY: [fromSide === 'left' ? -80 : 80, 0, fromSide === 'left' ? 80 : -80],
+            rotateZ: [fromSide === 'left' ? -25 : 25, 0, fromSide === 'left' ? 20 : -20],
+            rotateX: [-30, 15, -10],
+            scale: [0.3, secondary ? 1 : 1.5, 0.4],
+            opacity: [0, peakOpacity * opacityFactor, 0],
+          }}
+          transition={{ duration: 1.8, delay: baseDelay + extraDelay, ease: [0.22, 1, 0.36, 1], times: [0, 0.45, 1] }}
+        >
+          <img
+            src={url}
+            alt=""
+            className="w-full h-full object-contain"
+            style={{
+              filter: i === 0
+                ? `drop-shadow(0 0 34px ${accent}aa) drop-shadow(0 0 90px ${accent}44) drop-shadow(0 12px 32px rgba(0,0,0,0.7))`
+                : `drop-shadow(0 0 22px ${accent}66)`,
+            }}
+          />
+        </motion.div>
+      ))}
+    </>
   );
 }
 
@@ -147,7 +139,22 @@ export default function Hero() {
   const [fromSide, setFromSide] = useState<'left' | 'right'>('right');
   const [overlayOpacity, setOverlayOpacity] = useState(0);
   const [videoKey, setVideoKey] = useState(0);
+  const [showParticles, setShowParticles] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /* ornament particles only on desktop and without reduced-motion */
+  useEffect(() => {
+    const desktop = window.matchMedia('(min-width: 768px)');
+    const motionOk = window.matchMedia('(prefers-reduced-motion: no-preference)');
+    const update = () => setShowParticles(desktop.matches && motionOk.matches);
+    update();
+    desktop.addEventListener('change', update);
+    motionOk.addEventListener('change', update);
+    return () => {
+      desktop.removeEventListener('change', update);
+      motionOk.removeEventListener('change', update);
+    };
+  }, []);
 
   const goTo = useCallback((next: number, side: 'left' | 'right') => {
     if (next === idx) return;
@@ -208,12 +215,26 @@ export default function Hero() {
       <div className="absolute inset-0 z-10 bg-gradient-to-t from-[#060606] via-[#060606]/40 to-[#060606]/50 pointer-events-none" />
       <div className="absolute inset-0 z-10 bg-[radial-gradient(ellipse_80%_60%_at_50%_60%,transparent_30%,#060606_100%)] pointer-events-none" />
 
-      {/* ── Flying logo on transition ─────────────────────────── */}
+      {/* Drifting ornament particles (Three.js) */}
+      {showParticles && (
+        <div className="absolute inset-0 z-[15] pointer-events-none opacity-50">
+          <DanceParticles />
+        </div>
+      )}
+
+      {/* ── Flying logos on transition ────────────────────────── */}
       <FlyingLogo
         src={ev.logoSrc}
         trigger={flyTrigger}
         fromSide={fromSide}
         accent={ev.accent}
+      />
+      <FlyingLogo
+        src={EVENTS[(idx + 1) % EVENTS.length].logoSrc}
+        trigger={flyTrigger}
+        fromSide={fromSide === 'left' ? 'right' : 'left'}
+        accent={ev.accent}
+        secondary
       />
 
       {/* ── Editorial content ─────────────────────────────────── */}
@@ -227,8 +248,8 @@ export default function Hero() {
           className="flex items-center gap-3 mb-8"
         >
           <Diamond size={4} color="#c9a22788" />
-          <span className="text-white/35 text-[0.58rem] tracking-[0.5em] uppercase font-light">
-            Basarab's Dance — Season 2025
+          <span className="font-nav text-white/35 text-[0.58rem] tracking-[0.5em] uppercase">
+            Basarab&apos;s Dance — Season 2025
           </span>
           <Diamond size={4} color="#c9a22788" />
         </motion.div>
@@ -241,7 +262,7 @@ export default function Hero() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-            className="text-white/30 text-[0.62rem] tracking-[0.45em] uppercase mb-4 font-light"
+            className="font-nav text-white/30 text-[0.62rem] tracking-[0.45em] uppercase mb-4"
           >
             {ev.sub}
           </motion.p>
@@ -285,13 +306,13 @@ export default function Hero() {
               className="absolute inset-0 transition-all duration-500 group-hover:scale-x-[1.04] group-hover:scale-y-[1.12]"
               style={{ backgroundColor: ev.accent }}
             />
-            <span className="relative px-8 py-3.5 text-black text-[0.62rem] tracking-[0.35em] uppercase font-semibold">
+            <span className="relative font-nav px-8 py-3.5 text-black text-[0.62rem] tracking-[0.35em] uppercase font-semibold">
               Our Shows
             </span>
           </a>
           <a
             href="#about"
-            className="inline-flex items-center gap-2 text-white/35 text-[0.62rem] tracking-[0.35em] uppercase hover:text-white/70 transition-colors duration-400"
+            className="inline-flex items-center gap-2 font-nav text-white/35 text-[0.62rem] tracking-[0.35em] uppercase hover:text-white/70 transition-colors duration-400"
           >
             Discover
             <svg className="w-3.5 h-3.5 transition-transform duration-400 group-hover:translate-x-1" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
@@ -330,7 +351,7 @@ export default function Hero() {
                 </p>
 
                 <p
-                  className="mt-1 text-[0.55rem] tracking-[0.4em] uppercase transition-opacity duration-300"
+                  className="mt-1 font-nav text-[0.55rem] tracking-[0.4em] uppercase transition-opacity duration-300"
                   style={{ color: active ? e.accent : 'rgba(255,255,255,0.18)' }}
                 >
                   {e.sub.split('·')[0].trim()}
@@ -367,7 +388,7 @@ export default function Hero() {
           <div className="absolute inset-0 bg-white/5" />
         </div>
         <span
-          className="text-[0.48rem] tracking-[0.5em] uppercase"
+          className="font-nav text-[0.48rem] tracking-[0.5em] uppercase"
           style={{ writingMode: 'vertical-rl', color: 'rgba(255,255,255,0.2)' }}
         >
           Scroll

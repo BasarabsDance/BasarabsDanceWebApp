@@ -2,7 +2,6 @@
 import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
 import { ZoomParallax } from '@/components/ui/zoom-parallax';
-import { FloatingLogo } from '@/components/ui/FloatingLogo';
 
 const images = [
   { src: '/images/intampinare/2.jpg', alt: 'Întâmpinare' },
@@ -19,33 +18,14 @@ export default function Gallery() {
   const inView = useInView(ref, { once: true });
 
   return (
-    <section id="gallery" className="relative bg-brand-bg overflow-hidden">
-      {/* 3D Flying logo elements */}
-      <FloatingLogo
-        src="/logo/Detalii basarabs5.png"
-        size={110}
-        position="top-20 left-6"
-        delay={0.3}
-        opacity={0.16}
-        from="left"
-        floatRange={14}
-      />
-      <FloatingLogo
-        src="/logo/Detalii basarabs7.png"
-        size={95}
-        position="top-24 right-8"
-        delay={0.6}
-        opacity={0.15}
-        from="top"
-        floatRange={11}
-      />
-
+    /* NOTE: no overflow-hidden here — it breaks position:sticky inside ZoomParallax */
+    <section id="gallery" className="relative bg-brand-bg">
       <div ref={ref} className="max-w-7xl mx-auto px-6 pt-24 pb-8">
         <motion.p
           initial={{ opacity: 0, y: 10 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
-          className="text-teal-brand text-xs tracking-[0.4em] uppercase mb-3"
+          className="font-nav text-teal-brand text-xs tracking-[0.4em] uppercase mb-3"
         >
           Gallery
         </motion.p>
